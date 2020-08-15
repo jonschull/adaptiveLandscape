@@ -62,21 +62,34 @@ def grayMargins():
         for row in range(-1,numRows+1):
             colorPatch(row,col)
 
-
+grayMargins()
 
 from copy import copy, deepcopy
 
-def changePatch(row=1,col=1, alt=0.5):
+def changePatch(row=1,col=1, width= 0.5, alt=0.5):
+    East_Neighbor =     patches[row-1, col]
+    NorthEastNeighbor = patches[row-1, col-1]
+    NorthNeighbor =     patches[row,   col-1]
+
+
     target = patches[row,col]
-    target.v0.pos = patches[row-1, col].v3.pos;   
-    target.v1.pos = patches[row-1, col-1].v3.pos; 
-    target.v2.pos = patches[row,   col-1].v3.pos;   
-    target.v3.pos = target.v3.pos;                
+    target.v0.pos =     East_Neighbor.v3.pos;   
+    target.v1.pos = NorthEastNeighbor.v3.pos; 
+    target.v2.pos =     NorthNeighbor.v3.pos; 
     target.v3.pos.z = alt
+    target.v3.pos.x = NorthNeighbor.v3.pos.x + width
+    target.v3.pos.y = NorthNeighbor.v3.pos.y - width
+    
+    
     target.v0.color = color.white 
     target.v1.color = color.orange
     target.v2.color = color.magenta 
-    target.v3.color = vec(0.5,0.5,0.5) #gray is broken
+    #target.v0.color = patches[row-1, col].v3.color;   
+    #target.v1.color = patches[row-1, col-1].v3.color; 
+    #target.v2.color = patches[row,   col-1].v3.color;   
+
+    
+    target.v3.color = vec(alt,alt,alt)
     patches[row,col]=target
 
 #changePatch()
@@ -97,6 +110,8 @@ def test2():
     for row in range(numRows):
         for col in range(numCols):
             i = i + 0.3
-            changePatch(row,col,i)
+            changePatch(row,col,width = 1.1, alt=abs(i-3))
             
 test2()
+
+
