@@ -1,7 +1,7 @@
 from vpython import *
 
-Rows = 3
-Cols = 3
+Rows = 5
+Cols = 5
 scene.center = vec(Rows, Cols, 0)
 local_light(pos=vec(100,100,0), color=color.red)
 local_light(pos=vec(-100,-100, 0), color=color.blue)
@@ -13,7 +13,6 @@ def positionVertices():
     for row in range(-1, 2*Rows+1):
         for col in range(-1, 2*Cols+1):
             vertices[row,col] = vertex(pos=vec(row,col,0), initialPos = vec(row,col,0))
-            #label(border=0, opacity=0, pos=vec(row,col,0), text=str(vec(row,col,0)))
 positionVertices()
 
 # make quads 
@@ -55,7 +54,7 @@ def initLandscape():
         print()
         for col in range(Cols):
             height=(col - row)/((Rows+Cols)/3)
-            color=vec(-height,0.3 + height, height)
+            color=vec(0.3-height,0.3 + height, 0.3-height)
             heightAndColor(row,col, height = height, color=color)
 initLandscape()
 
@@ -90,3 +89,28 @@ def shrinkCells(wide=0.5,tall=0.5):
     for row in range(Rows):
         for col in range(Cols):
             wideAndLong(row,col, wide,tall)
+
+def avg(lst):
+    return sum(lst)/len(lst)
+
+def pos(cell):
+    x = avg( [v.pos.x for v in cell.vs] )
+    y = avg( [v.pos.y for v in cell.vs] )
+    z = avg(  [v.pos.z for v in cell.vs] )
+    return vec(x,y,z)
+
+agreeboxes=dict()
+def makeAgreeBoxes():
+    for row in range(Rows):
+        for col in range(Cols):
+            c= cell(row,col)
+            agreeboxes[row,col]=box(
+                pos=pos(c),
+                color=c.cellColor,
+                height=0.5,
+                length=0.5,
+                width=0.1
+            )
+
+
+makeAgreeBoxes()    
