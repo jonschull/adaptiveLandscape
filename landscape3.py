@@ -8,10 +8,13 @@ local_light(pos=vec(-100,-100, 0), color=color.blue)
 
 #make vertices
 vertices = dict()
-for row in range(-1, 2*Rows+1):
-    for col in range(-1, 2*Cols+1):
-        vertices[row,col] = vertex(pos=vec(row,col,0))
-        #label(border=0, opacity=0, pos=vec(row,col,0), text=str(vec(row,col,0)))
+
+def positionVertices():
+    for row in range(-1, 2*Rows+1):
+        for col in range(-1, 2*Cols+1):
+            vertices[row,col] = vertex(pos=vec(row,col,0), initialPos = vec(row,col,0))
+            #label(border=0, opacity=0, pos=vec(row,col,0), text=str(vec(row,col,0)))
+positionVertices()
 
 # make quads 
 quads=dict()
@@ -33,20 +36,57 @@ def rowcol(row=0,col=0):
     "integer corresonding to row,col"
     return row * Cols + col
 
-def modCell(row=0,col=0, height=0.5,color=vec(1,1,1)):
-    target = cells[rowcol(row,col)]
-    for i,v in enumerate(target.vs):
-        target.vs[i].pos.z = height
-        target.vs[i].color = color
-        target.emissive=False
+def cell(row,col):
+    return cells[rowcol(row,col)]
 
-#test
-def test():
+def heightAndColor(row=0,col=0, height=999,color=None):
+    target = cell(row,col)
+    for i,v in enumerate(target.vs):
+        if height!=999:
+            target.vs[i].pos.z = height
+        if color:
+            target.vs[i].color = color
+    target.visible=False
+    target.cellHeight = height
+    target.cellColor = color
+
+def initLandscape():
     for row in range(Rows):
         print()
         for col in range(Cols):
-            height=(row - col)/((Rows+Cols)/2)
+            height=(col - row)/((Rows+Cols)/3)
             color=vec(-height,0.3 + height, height)
-            modCell(row,col, height = height, color=color)
-            print(height, end=' ')
-test()
+            heightAndColor(row,col, height = height, color=color)
+initLandscape()
+
+def resetVertices():
+    for v in vertices: 
+        vertices[v].pos = vertices[v].initialPos
+        initLandscape()
+
+def moveCells(deltaX=0,deltaY=0):
+    for row in range(Rows):
+        for col in range(Cols):
+            target = cell(row,col)
+            for i in range(4):
+                target.vs[i].pos.x += deltaX
+                target.vs[i].pos.y += deltaY
+#moveCells(2,2)
+
+def wideAndLong(row=0,col=0, wide=0.5, long=0.5):
+    target = cell(row,col)
+    for i,v in enumerate(target.vs):
+        print(target.vs[i].pos.x,target.vs[i].pos.y)
+        TR, TL, BL, BR = 0,1,2,3 #T is top, B is Bottom
+    target.vs[TR].pos.x = target.vs[TL].pos.x + wide
+    target.vs[BR].pos.x = target.vs[BL].pos.x + wide
+    target.vs[TR].pos.y = target.vs[BR].pos.y + long
+    target.vs[TL].pos.y = target.vs[BL].pos.y + long
+    print()
+    for i,v in enumerate(target.vs):
+        print(target.vs[i].pos.x,target.vs[i].pos.y)
+    
+def shrinkCells(wide=0.5,tall=0.5):
+    for row in range(Rows):
+        for col in range(Cols):
+            wideAndLong(row,col, wide,tall)
