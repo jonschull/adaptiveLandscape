@@ -41,8 +41,8 @@ for row in range(Rows):
         r=random()
         boxMat[row,col] = box(pos = vec(row,col,0), color=vec(r,1-r,0))
 
-def slice(rowOrCol='row', index=0,  gimme=['keys','values','items'][2], mat = boxMat):
-    print(f'SLICE: {rowOrCol}=={index}, returning {gimme}')
+def sliceDict(rowOrCol='row', index=0,  mat = boxMat):
+    print(f'SLICE: {rowOrCol}=={index}')
 
     if rowOrCol=='row':
         ret = [[k,v] for k,v in boxMat.items() if k[0]== index]   
@@ -52,15 +52,11 @@ def slice(rowOrCol='row', index=0,  gimme=['keys','values','items'][2], mat = bo
             return
         ret = [[k,v] for k,v in boxMat.items() if k[1]== index]   
 
-    if gimme=='items':
-        return ret
-    elif gimme=='keys':
-        return [kv[0] for kv in ret]
-    elif gimme == 'values':
-        return [kv[1] for kv in ret]
-    else:
-        raise Exception('gimme not "keys", "values" or "items"')
-    
-slice()
+    retDict=dict()
+    for k,v in ret:
+        retDict[k] = v
+    return retDict
+
+sliceDict()
 
 
