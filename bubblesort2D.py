@@ -42,12 +42,13 @@ for row in range(Rows):
         boxMat[row,col] = box(pos = vec(row,col,0), color=vec(r,1-r,0))
 
 def sliceDict(rowOrCol='row', index=0,  mat = boxMat):
-    print(f'SLICE: {rowOrCol}=={index}')
+    print(f'SLICE:  {rowOrCol} =  {index}')
 
-    if rowOrCol=='row':
+    #col with index 0 means all cells are X=0
+    if rowOrCol=='col':
         ret = [[k,v] for k,v in boxMat.items() if k[0]== index]   
     else:
-        if rowOrCol!='col':
+        if rowOrCol!='row':
             raise Exception('ERROR: rowOrCol must be "row" or "col"')
             return
         ret = [[k,v] for k,v in boxMat.items() if k[1]== index]   
@@ -56,6 +57,8 @@ def sliceDict(rowOrCol='row', index=0,  mat = boxMat):
     for k,v in ret:
         retDict[k] = v
     return retDict
+
+
 
 sliceDict()
 
