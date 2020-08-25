@@ -3,7 +3,7 @@ from random import random
 from vpython import box,vec,label
 
 def bubblesort( A, Bs, axis='x' ):
-  """A is the metric, Bs are Boxes in rows"""
+  """A is the metric, Bs is list of Boxes """
   for i in range( len( A ) ):
     for k in range( len( A ) - 1, i, -1 ):
       if ( A[k] < A[k - 1] ):
@@ -16,12 +16,12 @@ def bubblesort( A, Bs, axis='x' ):
         else:
             Bs[k].pos.y   = k
             Bs[k-1].pos.y = k-1
-        sleep(0.1)
+        sleep(0.005)
     print(A)
 
   
 
-def oneD():
+def oneDh(): #horizontal
     A=[round(10*random()) for x in range(10)]  
     Bs=[]
     for i,a in enumerate(A):
@@ -31,7 +31,18 @@ def oneD():
 
     bubblesort(A,Bs, axis='x')
 
-#oneD()
+
+def oneDv():
+    A=[round(10*random()) for x in range(10)]  
+    Bs=[]
+    for i,a in enumerate(A):
+        #position bottom to top, green to red
+        B=box(pos = vec(0,i,0), color=vec(a/10,1-a/10,0))
+        Bs.append(B)
+
+    bubblesort(A,Bs, axis='y')
+
+
 
 Rows=10
 Cols=10
@@ -59,7 +70,19 @@ def sliceDict(rowOrCol='row', index=0,  mat = boxMat):
     return retDict
 
 
+for col in range(Cols):
+    listOfCells = list(sliceDict('col', col).values())
+    metric = [c.color.x for c in listOfCells]
+    bubblesort(metric, listOfCells, axis='y')
+    for cell in listOfCells:
+        boxMat[cell.pos.x,cell.pos.y] = cell
 
-sliceDict()
+
+for row in range(Rows):
+    listOfCells = list(sliceDict('row', row).values())
+    metric = [c.color.x for c in listOfCells]
+    bubblesort(metric, listOfCells, axis='x')
+    for cell in listOfCells:
+        boxMat[cell.pos.x,cell.pos.y] = cell
 
 
