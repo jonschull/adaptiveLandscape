@@ -6,6 +6,9 @@ scene.center = vec(Rows, Cols, 0)
 local_light(pos=vec(100,100,0), color=color.red)
 local_light(pos=vec(-100,-100, 0), color=color.blue)
 
+boxSize=0.9 #for "participation boxes" in cells 
+boxDepth=0.2
+
 #make vertices
 vertices = dict()
 def positionVertices():
@@ -23,7 +26,6 @@ def pos(cell):
     y = avg( [v.pos.y for v in cell.vs] )
     z = avg( [v.pos.z for v in cell.vs] )
     return vec(x,y,z)
-
 
 # make quads and cells and boxes
 quads   = dict()
@@ -45,7 +47,7 @@ for row in range(2*Rows+1):
             cellDict[row//2, col//2].visible=False
             boxes[row//2, col//2] = box(
                                         pos = pos(quads[row,col]),
-                                        size= vec(0.9,0.9,0.1)
+                                        size= vec(boxSize,boxSize,boxDepth)
                                         )
 
 def cell(row,col):
@@ -62,14 +64,16 @@ class Unit:
         self.box=boxes[row,col]
         self.cell = cell(row,col)
         self.pos = self.box.pos
+        self.size=1
+        self.boxSize = boxSize
 
-    def change(self,color=None, pos=None, height=None):
-        if color:
+    def change(self,color=None, pos=None, height=None, size=None, boxSize=None):
+        if color is not None:
             self.box.color=color
             for i in range(4):
                 self.cell.vs[i].color=color
             
-        if pos:
+        if pos is not None:
             oldPos = self.pos
             deltaPos = oldPos - pos
             self.pos = pos
@@ -77,14 +81,36 @@ class Unit:
             for i in range(4):
                 self.cell.vs[i].pos -= deltaPos
 
-        if height:
+        if height is not None:
             newPos = vec(
                 self.pos.x,
                 self.pos.y,
                 height)
             newColor = colorFunc(height)
             self.change( pos=newPos, color =newColor )
+        
+        if boxSize is not None: #boxsize is relative to cell size; 1 means no visible frame
+            self.boxSize=boxSize
+            self.box.size = self.boxSize * vec(self.size,self.size,0.2)
             
+
+        if size is not None: # voters
+            self.size=size
+            TR, TL, BL, BR = 0,1,2,3 #T is top, B is Bottom
+            target=self.cell
+            wide=long=size
+            target.vs[TR].pos.x = target.vs[TL].pos.x + wide
+            target.vs[BR].pos.x = target.vs[BL].pos.x + wide
+            target.vs[TR].pos.y = target.vs[BR].pos.y + long
+            target.vs[TL].pos.y = target.vs[BL].pos.y + long
+            self.boxSize = self.boxSize * vec(size,size,boxDepth)
+            self.box.size = self.boxSize
+            newPos= target.vs[BL].pos + vec(size/2, size/2,0)
+            self.pos = newPos
+            self.box.pos = newPos
+    
+
+
 #make the units
 units=dict()
 for row in range(Rows):
@@ -106,40 +132,25 @@ def resetVertices():
         initLandscape()
 
 
-def wideAndLong(row=0,col=0, wide=0.5, long=0.5):
-    target = cell(row,col)
-    for i,v in enumerate(target.vs):
-        print(target.vs[i].pos.x,target.vs[i].pos.y)
-        TR, TL, BL, BR = 0,1,2,3 #T is top, B is Bottom
-    target.vs[TR].pos.x = target.vs[TL].pos.x + wide
-    target.vs[BR].pos.x = target.vs[BL].pos.x + wide
-    target.vs[TR].pos.y = target.vs[BR].pos.y + long
-    target.vs[TL].pos.y = target.vs[BL].pos.y + long
-    print()
-    for i,v in enumerate(target.vs):
-        print(target.vs[i].pos.x,target.vs[i].pos.y)
-    
-def shrinkCells(wide=0.5,tall=0.5):
-    for row in range(Rows):
-        for col in range(Cols):
-            wideAndLong(row,col, wide,tall)
+# scene.caption="""
+# <h3>caption</h3>
+# Each column of squares represents a group. 
+# Each row of squares represents a question.
+# For each square<ul>
+# <li> The altitude/color of each square reflects agreement.
+# <li> The size of each square represents the number of people who voted.
+# <li> The thickness of the black outline of each square represents the number of people who passed.
+# </ul>
+
+# This where detail would be shown on hover.
+# <ul><li>question
+# <li>Agree
+# <li>Disagree
+# <li>Pass
+# </ul>
+
+# """
 
 
-scene.caption="""
-<h3>caption</h3>
-Each column of squares represents a group. 
-Each row of squares represents a question.
-For each square<ul>
-<li> The altitude/color of each square reflects agreement.
-<li> The size of each square represents the number of people who voted.
-<li> The thickness of the black outline of each square represents the number of people who passed.
-</ul>
-
-This where detail would be shown on hover.
-<ul><li>question
-<li>Agree
-<li>Disagree
-<li>Pass
-</ul>
-
-"""
+u=units[0,0]
+u.change(size=0.5,boxSize=0.5)
