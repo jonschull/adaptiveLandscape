@@ -46,38 +46,52 @@ def sliceDict(RowOrCol='Row', index=0,  boxMat = None):
         retDict[k] = v
     return retDict
 
-        
-def sortSlice(boxMat, RowOrCol='Row'):
-    global Rows, Cols
+def metricFunc(listOfCells):
+    return [c.color.x for c in listOfCells]
 
-    IndicesForRowOrCol = dict(Row= range(Rows),
-                            Col= range(Cols))
+def sortSlice(RowOrCol,RowOrColIndex, boxMat, metricFunc=metricFunc):
     AxisForRowOrCol = dict(Row= 'x',
                            Col= 'y')
 
-    for RowOrColIndex in IndicesForRowOrCol[ RowOrCol ]:
-        listOfCells = list(sliceDict(RowOrCol, RowOrColIndex, boxMat).values())
-        originalKeys= list(sliceDict(RowOrCol, RowOrColIndex, boxMat).keys())
-        metric = [c.color.x for c in listOfCells]
-        bubblesort(metric, listOfCells, axis= AxisForRowOrCol[ RowOrCol ] )
-        for i,key in enumerate(originalKeys):
-            boxMat[ originalKeys[i] ] = listOfCells[i]
+    listOfCells = list(sliceDict(RowOrCol, RowOrColIndex, boxMat).values())
+    originalKeys= list(sliceDict(RowOrCol, RowOrColIndex, boxMat).keys())
+    metric = metricFunc(listOfCells)
+    bubblesort(metric, listOfCells, axis= AxisForRowOrCol[ RowOrCol ] )
+    for i,key in enumerate(originalKeys):
+        boxMat[ originalKeys[i] ] = listOfCells[i]
+        
+def sortSlices(boxMat, RowOrCol='Row'):
+    global Rows, Cols
+    global paramDict
 
-Rows=20
+    IndicesForRowOrCol = dict(Row= range(Rows),
+                              Col= range(Cols))
+    
+    for RowOrColIndex in IndicesForRowOrCol[ RowOrCol ]:
+        sortSlice(RowOrCol,RowOrColIndex, boxMat, metricFunc)
+
+
+
+
+Rows=10
 Cols=20
 
-def test():
-    global boxMat
-    #make boxMat: a dictionary[row,col] of boxes
+def makeBoxMat(Rows=Rows,Cols=Cols):
     boxMat = dict()
     for row in range(Rows):
         for col in range(Cols):
             r=random()
             boxMat[row,col] = box(pos = vec(row,col,0), color=vec(r,1-r,0))
+    return boxMat
 
-    #sortRows(Rows,boxMat)
-    sortSlice(boxMat, 'Row')
-    sortSlice(boxMat, 'Col')
-    
-test()
+
+boxMat=makeBoxMat()
+
+def sortRectangle(Rows=Rows,Cols=Cols, boxMat=boxMat, metricFunc=metricFunc):
+    for _ in [1,2]: #second pass is needed to mop up rows
+        for i in range(max(Rows,Cols)):
+            if i<Cols: sortSlice('Row', i, boxMat, metricFunc)
+            if i<Rows: sortSlice('Col', i, boxMat, metricFunc)
+
+sortRectangle(Rows,Cols,boxMat, metricFunc)
 
