@@ -1,17 +1,20 @@
 from vpython import *
 
 #we'll be making a grid of boxes
-Rows = 2
-Cols = 2
-
+Rows = 3
+Cols = 3
+showLabels =  Rows + Cols < 5
+    
 scene.center = vec(Rows, Cols, 0)
 scene.height=800
 scene.width=800
+#scene.axis = vec(0.17653, 0.857299, -0.483607)
+
 local_light(pos=vec(100,100,0), color=color.red)
 local_light(pos=vec(-100,-100, 0), color=color.blue)
 
 boxSize=0.9 #for "participation boxes" in cells 
-boxDepth=0.2
+boxDepth=0.1
 
 #make vertices
 vertices = dict()
@@ -19,7 +22,7 @@ def positionVertices():
     for i in range(-1, 2*Rows+1):
         for j in range(-1, 2*Cols+1):
             pos = vec(i,j,0)
-            l=label(pos=pos, text = f'v{i}{j}')  
+            l=label(pos=pos, text = f'v{i}{j}', visible = showLabels)  
             vertices[i,j] = vertex(pos=pos, initialPos = pos, label=l)
 positionVertices()
 
@@ -32,36 +35,6 @@ def centroid(cell):
     z = avg( [v.pos.z for v in cell.vs] )
     return vec(x,y,z)
 
-# # make quads and cells and boxes
-# quads   = dict()
-# cellDict = dict()
-# boxes = dict()
-
-# for i in range(2*Rows+1):
-#     for j in range( 2*Cols+1):
-#         vs=[    vertices[i,j],
-#                 vertices[i-1,j],
-#                 vertices[i-1,j-1],
-#                 vertices[i, j-1]    ]
-
-#         q = quad(vs=vs,
-#             texture=textures.rough,
-#             shininess=0,)
-#         q.label = label(pos=centroid(q), text=f'Q{i}{j}', color=color.yellow, visible=True)
-
-#         quads[i,j] = q
-
-#         if i%2 and j%2:
-#             #cellDict[i//2, j//2] = quads[i,j]
-#             #cellDict[i//2, j//2].visible=False
-
-#             boxpos = centroid(quads[i,j])
-#             b =box(pos = boxpos,
-#                    size= vec(boxSize,boxSize,boxDepth),
-#                    label=label(pos=boxpos + vec(0,-0.2,0), text=f'B{i}{j}',  color=color.green) )
-#             boxes[i//2, j//2] = b
-# 1/0
-
 def cell(row,col):
     """return the cell corresponding to row,col"""
     return cellDict[row,col]
@@ -73,12 +46,20 @@ def colorFunc(height):
 # (use change to change pos, height, etc., not pos= as with vpython objects)
 class Unit:
     def __init__(self, row,col,q):
+        """
+        A unit is a cell in a 2D matrix of rows and columns.
+        All attributes should be changed using change()
+        size denotes number of participants (agree, disagree, or pass)
+        height and color denote agreement  (% agree)
+            (height sets height AND color)
+        boxSize denotes proportion of non-passes (no one passes, boxsize=1)
+        """
         self.rowCol=(row,col)
         self.q = q
         boxPos = centroid(q)
         self.box =box(  pos = boxPos,
                         size= vec(boxSize,boxSize,boxDepth),
-                        label=label(pos=boxPos + vec(0,-0.2,0), text=f'B{i}{j}',  color=color.green) )
+                        label=label(pos=boxPos + vec(0,-0.2,0), text=f'B{i}{j}',  color=color.green, visible= showLabels) )
      
         #self.box=boxes[row,col]
         #self.cell = cell(row,col)
@@ -88,10 +69,11 @@ class Unit:
         self.height = 0
         self.color=color.magenta
         
+
     def change(self,color=None, pos=None, height=None, size=None, boxSize=None, rowCol = None, q=None):
         if rowCol is not None:
             print(self.rowCol,' ->', rowCol)
-            #self.rowCol = rowCol
+            self.rowCol = rowCol
             row,col=rowCol
             #self.cell=cell(row,col)
             self.change(size=self.size)
@@ -108,18 +90,10 @@ class Unit:
             
         if pos is not None:
             deltaVs = [0,0,0,0]
-            # capture vertices relative to box
-            for i in range(4):
-                print('XXX', self.q.vs[i].pos,self.box.pos)
-                deltaVs[i] = self.q.vs[i].pos - self.box.pos
-                
+               
             self.pos = pos
-            # move box
             self.box.pos = pos
-            
-            #reposition vertices relative to box
-            for i in range(4):
-                self.q.vs[i].pos -= deltaVs[i]
+            self.change(size=self.size)
 
         if height is not None:
             newPos = vec(
@@ -129,6 +103,7 @@ class Unit:
             self.height=height
             newColor = colorFunc(height)
             self.change( pos=newPos, color =newColor )
+            
         
         if boxSize is not None: #boxsize is relative to cell size; 1 means no visible frame
             self.boxSize=boxSize
@@ -144,8 +119,12 @@ class Unit:
             target.vs[BR].pos.x = target.vs[BL].pos.x + wide
             target.vs[TR].pos.y = target.vs[BR].pos.y + long
             target.vs[TL].pos.y = target.vs[BL].pos.y + long
-            self.boxSize = self.boxSize * vec(size,size,boxDepth)
-            self.box.size = self.boxSize
+            for i in range(4):
+                target.vs[i].pos.z = self.height
+
+            self.boxSize = size
+            self.box.size = self.boxSize * vec(size,size,boxDepth)
+
             newPos= target.vs[BL].pos + vec(size/2, size/2,0)
             self.pos = newPos
             self.box.pos = newPos
@@ -168,7 +147,7 @@ for i in range(2*Rows+1):
         q = quad(vs=vs,
             texture=textures.rough,
             shininess=0,)
-        q.label = label(pos=centroid(q), text=f'Q{i}{j}', color=color.yellow, visible=True)
+        q.label = label(pos=centroid(q), text=f'Q{i}{j}', color=color.yellow, visible=showLabels)
 
         quads[i,j] = q
 
@@ -198,8 +177,8 @@ def swapper(rowCol1=(0,0),rowCol2 = (1,1)):
     #swap using copy for some reason
     u1boxPos = copy(u1.box.pos) 
     u0boxPos = copy(u0.box.pos)
-    u0.box.pos = u1boxPos; u0.change(color=u0.box.color)
-    u1.box.pos = u0boxPos; u1.change(color=u1.box.color)
+    u0.box.pos = u1boxPos; u0.change(pos=u0boxPos, color=u0.box.color)
+    u1.box.pos = u0boxPos; u1.change(pos=u1boxPos, color=u1.box.color)
     
     #swap handles
     units[rowCol1], units[rowCol2] = units[rowCol2], units[rowCol1]  
@@ -207,28 +186,12 @@ def swapper(rowCol1=(0,0),rowCol2 = (1,1)):
 def testSwapper():
     u.change(color=color.red)
     u.change(boxSize=0.5)
-    for i in range(2):
+    for i in range(20):
         swapper()
         sleep(0.5)
 
-testSwapper()
-u=units[0,0]
-u.change(color=color.yellow)
-#u.change(height=0.5)
+#testSwapper()
 
-#u1.rowCol, u0.rowCol = u0.rowCol, u1.rowCol
-
-#units[0,0], units[1,1] = u1,u0
-
-
-
-# 1/0
-
-# #make the units
-# units=dict()
-# for row in range(Rows):
-#     for col in range(Cols):
-#         units[row,col]= Unit(row,col)
 
 from random import random
 def initLandscape():
@@ -238,55 +201,43 @@ def initLandscape():
             color=colorFunc(height)
             units[row,col].change(height=height,color=color) #use the changemethod
 
-#initLandscape()
+initLandscape()
 
-# def redraw():
-#     for row in range(Rows):
-#         for col in range(Cols):
-#            u =  units[row,col]
-#            units[row,col].change(
-#                rowCol  =u.rowCol,
-#                pos      = u.pos, 
-#                height   = u.height.z,
-#                color    = u.color,
-#                boxSize  = u.boxSize
-#                ) #use the changemethod
-
-
-# def resetVertices():
-#     for v in vertices: 
-#         vertices[v].pos = vertices[v].initialPos
-#         initLandscape()
+def redraw():
+    for row in range(Rows):
+        for col in range(Cols):
+           u =  units[row,col]
+           units[row,col].change(
+               rowCol  =u.rowCol,
+               pos      = u.pos, 
+               height   = u.height,
+               color    = u.color,
+               boxSize  = u.boxSize
+               ) #use the changemethod
 
 
-# # scene.caption="""
-# # <h3>caption</h3>
-# # Each column of squares represents a group. 
-# # Each row of squares represents a question.
-# # For each square<ul>
-# # <li> The altitude/color of each square reflects agreement.
-# # <li> The size of each square represents the number of people who voted.
-# # <li> The thickness of the black outline of each square represents the number of people who passed.
-# # </ul>
 
-# # This where detail would be shown on hover.
-# # <ul><li>question
-# # <li>Agree
-# # <li>Disagree
-# # <li>Pass
-# # </ul>
+def sliceDict(XorY='X', index=0,  boxMat = None):
+    if not boxMat:
+        boxMat=dict() #typically these would be boxes. see test()
+        boxMat[0,0]=dict(x=0,y=0)
+        boxMat[0,1]=dict(x=0,y=0)
+        boxMat[1,0]=dict(x=0,y=0)
+        boxMat[1,1]=dict(x=0,y=0)
+        
+    #print(f'SLICEDict:  {rowOrCol} =  {index}')
 
-# # """
+    if XorY=='X':
+        ret = [[k,v] for k,v in boxMat.items() if k[0]== index]   
+    else:
+        if XorY!='Y':
+            raise Exception('ERROR: rowOrCol must be "X" or "Y"')
+            return
+        ret = [[k,v] for k,v in boxMat.items() if k[1]== index]   
 
-# from bubblesort2D import sortRectangle
+    retDict=dict()
+    for k,v in ret:
+        retDict[k] = v
+    return retDict
 
-# def myMetricFunc(listOfCells):
-#     """ this is MY metric function 
-#     """
-#     ret = [u.height.z for u in listOfCells]
-#     return ret
-
-# u=units[0,0]
-# sortRectangle(units, Rows,Cols, metricFunc=myMetricFunc)
-# sleep(0.5)
-# redraw()
+sliceDict('X',0, units)
