@@ -1,8 +1,8 @@
 from vpython import *
 
 #we'll be making a grid of boxes
-Rows = 3
-Cols = 3
+Rows = 5
+Cols = 5
 showLabels =  Rows + Cols < 5
     
 scene.center = vec(Rows, Cols, 0)
@@ -72,7 +72,7 @@ class Unit:
 
     def change(self,color=None, pos=None, height=None, size=None, boxSize=None, rowCol = None, q=None):
         if rowCol is not None:
-            print(self.rowCol,' ->', rowCol)
+            #print(self.rowCol,' ->', rowCol)
             self.rowCol = rowCol
             row,col=rowCol
             #self.cell=cell(row,col)
@@ -153,7 +153,7 @@ for i in range(2*Rows+1):
 
         if i%2 and j%2:
             row, col = i//2, j//2
-            print(row,col)
+            #print(row,col)
             q = quads[i,j]
             q.visible=False
             u = Unit(row,col,q)
@@ -163,9 +163,7 @@ for i in range(2*Rows+1):
             #cellDict[i//2, j//2].visible=False
             #boxes[i//2, j//2] = b
 
-
-def swapper(rowCol1=(0,0),rowCol2 = (1,1)):
-    #SWAPPER    
+def swap(rowCol1=(0,0),rowCol2 = (1,1)):
     from copy import copy
     u1 = units[rowCol1]
     u0 = units[rowCol2]    
@@ -179,9 +177,30 @@ def swapper(rowCol1=(0,0),rowCol2 = (1,1)):
     u0boxPos = copy(u0.box.pos)
     u0.box.pos = u1boxPos; u0.change(pos=u0boxPos, color=u0.box.color)
     u1.box.pos = u0boxPos; u1.change(pos=u1boxPos, color=u1.box.color)
+
+
+def swapUnits(u1,u0):
+    from copy import copy
+    rowCol1 = u1.rowCol
+    rowCol2 = u0.rowCol
     
-    #swap handles
-    units[rowCol1], units[rowCol2] = units[rowCol2], units[rowCol1]  
+    #swap critical properties
+    u1.q,  u0.q  =  u0.q,    u1.q
+    u1.rowCol, u0.rowCol = u0.rowCol, u1.rowCol
+
+    #swap using copy for some reason
+    u1boxPos = copy(u1.box.pos) 
+    u0boxPos = copy(u0.box.pos)
+    u0.box.pos = u1boxPos; u0.change(pos=u0boxPos, color=u0.box.color)
+    u1.box.pos = u0boxPos; u1.change(pos=u1boxPos, color=u1.box.color)
+    
+
+def fixHandles(rowCol1=(0,0),rowCol2 = (1,1)):
+    units[rowCol1], units[rowCol2] = units[rowCol2], units[rowCol1]
+
+def swapper(rowCol1=(0,0),rowCol2 = (1,1)):
+    swap(       rowCol1, rowCol2)
+    fixHandles( rowCol1, rowCol2)
     
 def testSwapper():
     u.change(color=color.red)
@@ -199,25 +218,31 @@ def initLandscape():
         for col in range(Cols):
             height= 1 - (2*random())
             color=colorFunc(height)
-            units[row,col].change(height=height,color=color) #use the changemethod
+            units[row,col].change(height=height,color=color, size=random(), boxSize=random()) #use the changemethod
 
 initLandscape()
 
-def redraw():
-    for row in range(Rows):
-        for col in range(Cols):
-           u =  units[row,col]
-           units[row,col].change(
-               rowCol  =u.rowCol,
-               pos      = u.pos, 
-               height   = u.height,
-               color    = u.color,
-               boxSize  = u.boxSize
-               ) #use the changemethod
+u00=units[0,0]
+u11=units[1,1]
+
+from copy import copy
+
+def swapProps(u00=units[0,0], u11=units[1,1]):
+    #THIS WORKS
+    tmp = u00.height #also changes color
+    u00.change(height=u11.height)
+    u11.change(height=tmp)
+
+    tmp = u00.size
+    u00.change(size=u11.size)
+    u11.change(size=tmp)
+
+    tmp = u00.boxSize
+    u00.change(boxSize=u11.boxSize)
+    u11.change(boxSize=tmp)
 
 
-
-def sliceDict(XorY='X', index=0,  boxMat = None):
+def sliceDict(XorY='X', index=0,  boxMat = units):
     if not boxMat:
         boxMat=dict() #typically these would be boxes. see test()
         boxMat[0,0]=dict(x=0,y=0)
@@ -240,4 +265,35 @@ def sliceDict(XorY='X', index=0,  boxMat = None):
         retDict[k] = v
     return retDict
 
-sliceDict('X',0, units)
+for XorY in ['X','Y']:
+    for index in range(Cols):
+
+        SD = sliceDict(XorY, index, units)
+        Have = list(SD.values())
+
+        metric = [u.height for u in SD.values()]
+        print('\n\nmetric', metric)
+        shuffled = sorted(list(zip(metric,SD.items())))
+        Wants = []
+        for i,(m,(k,u)) in enumerate(shuffled):
+            Wants.append(u)
+            
+
+        #store the props of the wants
+        #then apply them to the Haves
+
+        #store...
+        wantedProps = []
+        for want in Wants:
+            wantedProps.append(dict(
+                size   = want.size,
+                height = want.height,
+                boxSize= want.boxSize
+            ))
+
+        #apply
+        for i, want in enumerate(wantedProps):
+            Have[i].change(
+                size=want['size'],
+                height=want['height'],
+                boxSize=want['boxSize'])
