@@ -2,9 +2,9 @@ from vpython import *
 
 #we'll be making a grid of boxes
 ################################
-Rows = 5
-Cols = 5
-showLabels =  Rows + Cols < 5
+Rows = 3
+Cols = 3
+showLabels =  Rows + Cols <= 5
     
 scene.center = vec(Rows, Cols, 0)
 scene.height=800
@@ -37,17 +37,16 @@ def colorFunc(height):
                 0.3 + height, 
                 0.3 + height) 
 
-
-#make vertices
-vertices = dict()
-def positionVertices():
+def makeVertices(Rows,Cols, showLabels):
     """Set showLabels = True for Labels"""
+    vertices = dict()    
     for i in range(-1, 2*Rows+1):
         for j in range(-1, 2*Cols+1):
             pos = vec(i,j,0)
             l=label(pos=pos, text = f'v{i}{j}', visible = showLabels)  
             vertices[i,j] = vertex(pos=pos, initialPos = pos, label=l)
-positionVertices()
+    return vertices
+
 
 # create a Unit class with a smart change method
 # (use change to change size, height, BoxSize etc., not pos= as with vpython objects)
@@ -66,7 +65,7 @@ class Unit:
         boxPos = centroid(q)
         self.box =box(  pos = boxPos,
                         size= vec(boxSize,boxSize,boxDepth),
-                        label=label(pos=boxPos + vec(0,-0.2,0), text=f'B{i}{j}',  color=color.green, visible= showLabels) )
+                        label=label(pos=boxPos + vec(0,-0.2,0), text=f'B{row}{col}',  color=color.green, visible= showLabels) )
      
         self.pos = self.box.pos
         self.size=1
@@ -129,35 +128,39 @@ class Unit:
             self.pos = newPos
             self.box.pos = newPos
     
-
+    
 # make quads, cells, boxes and use them to build units.  
-quads   =  dict()
-boxes =    dict()
-units =    dict()
-for i in range(2*Rows+1):
-    for j in range( 2*Cols+1):
-        vs=[    vertices[i,j],
-                vertices[i-1,j],
-                vertices[i-1,j-1],
-                vertices[i, j-1]    ]
+def makeUnits(Rows,Cols, showLabels):
+    vertices = makeVertices(Rows,Cols, showLabels)
+    quads   =  dict()
+    boxes =    dict()
+    units =    dict()
+    for i in range(2*Rows+1):
+        for j in range( 2*Cols+1):
+            vs=[    vertices[i,j],
+                    vertices[i-1,j],
+                    vertices[i-1,j-1],
+                    vertices[i, j-1]    ]
 
-        q = quad(vs=vs,
-            texture=textures.rough,
-            shininess=0,)
-        q.label = label(pos=centroid(q), text=f'Q{i}{j}', color=color.yellow, visible=showLabels)
+            q = quad(vs=vs,
+                texture=textures.rough,
+                shininess=0,)
+            q.label = label(pos=centroid(q), text=f'Q{i}{j}', color=color.yellow, visible=showLabels)
 
-        quads[i,j] = q
+            quads[i,j] = q
 
-        if i%2 and j%2:
-            row, col = i//2, j//2
-            #print(row,col)
-            q = quads[i,j]
-            q.visible=False
-            u = Unit(row,col,q) #CREATE the unit
-            units[row,col] = u
+            if i%2 and j%2:
+                row, col = i//2, j//2
+                #print(row,col)
+                q = quads[i,j]
+                q.visible=False
+                u = Unit(row,col,q) #CREATE the unit
+                units[row,col] = u
+    return units
+
 
 from random import random
-def initLandscape(): #random landscape
+def initLandscape(units, Rows, Cols): #random landscape
     for row in range(Rows):
         for col in range(Cols):
             height= 1 - (2*random()) # -1 to 1
@@ -169,10 +172,9 @@ def initLandscape(): #random landscape
                                     size=size, 
                                     boxSize=boxSize) #use the changemethod
 
-initLandscape()
 
 ###### sorting 
-def sliceDict(XorY='X', index=0,  boxMat = units):
+def sliceDict(XorY='X', index=0,  boxMat=dict()): #boxMat=units
     """ return a dictionary containing the cells of a single column or Row
     ('X', 0) is the first column (all cells with X=0)  
     """
@@ -193,34 +195,40 @@ def sliceDict(XorY='X', index=0,  boxMat = units):
     return retDict
 
 #####Sort the full grid.
+def sortRect(units, Rows, Cols):
+    for XorY in ['X','Y']:
+        for index in range(Cols):
+            sleep(0.1)
+            SD = sliceDict(XorY, index, units)
+            Have = list(SD.values())
 
-for XorY in ['X','Y']:
-    for index in range(Cols):
-        sleep(0.1)
-        SD = sliceDict(XorY, index, units)
-        Have = list(SD.values())
+            metric = [u.height for u in SD.values()]
+            shuffled = sorted(list(zip(metric,SD.items())))
+            Wants = []
+            for i,(m,(k,u)) in enumerate(shuffled):
+                Wants.append(u)
+                
+            #store the props of the wants
+            #then apply them to the Haves
 
-        metric = [u.height for u in SD.values()]
-        shuffled = sorted(list(zip(metric,SD.items())))
-        Wants = []
-        for i,(m,(k,u)) in enumerate(shuffled):
-            Wants.append(u)
-            
-        #store the props of the wants
-        #then apply them to the Haves
+            #store...
+            wantedProps = []
+            for want in Wants:
+                wantedProps.append(dict(
+                    size   = want.size,
+                    height = want.height,
+                    boxSize= want.boxSize
+                ))
 
-        #store...
-        wantedProps = []
-        for want in Wants:
-            wantedProps.append(dict(
-                size   = want.size,
-                height = want.height,
-                boxSize= want.boxSize
-            ))
+            #apply
+            for i, want in enumerate(wantedProps):
+                Have[i].change(
+                    size=want['size'],
+                    height=want['height'],
+                    boxSize=want['boxSize'])
 
-        #apply
-        for i, want in enumerate(wantedProps):
-            Have[i].change(
-                size=want['size'],
-                height=want['height'],
-                boxSize=want['boxSize'])
+
+if __name__=='__main__':
+    units = makeUnits(Rows,Cols)
+    initLandscape(units, Rows, Cols)
+    sortRect(units, Rows, Cols)
