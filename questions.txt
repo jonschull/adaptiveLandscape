@@ -1,0 +1,9 @@
+Initial     This is the initial question.  87 agree, 13 disagree, 19 pass. 87 13 19
+Second      The second question demonstrates that it is the last three numbers that encode agree, disagree, and pass. 40 20 10
+Third_Is_OK 40 40 10
+Bad         No values
+Good    This one is good again 10 10 10
+Unanimity Everyone agrees 100 0 0 
+Dissent Most people disagree 10 50 20
+Another Most people disagree 10 50 10
+YetNother  Most people disagree 10 50 0

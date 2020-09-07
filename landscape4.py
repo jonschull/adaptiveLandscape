@@ -7,8 +7,8 @@ Cols = 3
 showLabels =  Rows + Cols <= 5
     
 scene.center = vec(Rows, Cols, 0)
-scene.height=800
-scene.width=800
+scene.height=600
+scene.width=600
 
 local_light(pos=vec(100,100,0), color=color.red)
 local_light(pos=vec(-100,-100, 0), color=color.blue)
@@ -66,15 +66,20 @@ class Unit:
         self.box =box(  pos = boxPos,
                         size= vec(boxSize,boxSize,boxDepth),
                         label=label(pos=boxPos + vec(0,-0.2,0), text=f'B{row}{col}',  color=color.green, visible= showLabels) )
-     
+    
         self.pos = self.box.pos
+        self.text = str((row,col))
+        self.label = label(pos = self.pos, text = self.text, opacity = 0.4) 
         self.size=1
         self.boxSize = boxSize
         self.height = 0
         self.color=color.magenta
         
 
-    def change(self,color=None, pos=None, height=None, size=None, boxSize=None, rowCol = None, q=None):
+    def change(self,color=None, pos=None, height=None, size=None, boxSize=None, rowCol = None, q=None, text=None):
+        if text is not None:
+            self.text = self.label.text = text
+
         if rowCol is not None:
             self.rowCol = rowCol
             row,col=rowCol
@@ -91,9 +96,7 @@ class Unit:
                 self.q.vs[i].color=color
             
         if pos is not None:
-            deltaVs = [0,0,0,0]
-            self.pos = pos
-            self.box.pos = pos
+            self.pos = self.box.pos = self.label.pos = pos
             self.change(size=self.size)
 
         if height is not None:
@@ -102,12 +105,12 @@ class Unit:
                 self.pos.y,
                 height)
             self.height=height
-            newColor = colorFunc(height) * self.boxSize + vec(0.5,0.5,0.5)
+            newColor = colorFunc(height)  + vec(0.5,0.5,0.5)
             self.change(pos=newPos, color =newColor )
         
         if boxSize is not None: #boxsize is relative to cell size; 1 means no visible frame
             self.boxSize=boxSize
-            self.box.size = self.boxSize * vec(self.size,self.size,0.2)
+            self.box.size = self.boxSize * vec(self.size,self.size,self.box.size.z)
             
         if size is not None: # voters
             self.size=size
@@ -195,7 +198,7 @@ def sliceDict(XorY='X', index=0,  boxMat=dict()): #boxMat=units
     return retDict
 
 #####Sort the full grid.
-def sortRect(units, Rows, Cols):
+def sortRect(units = {}, Rows=Rows, Cols=Cols):
     for XorY in ['X','Y']:
         for index in range(Cols):
             sleep(0.1)
@@ -217,7 +220,9 @@ def sortRect(units, Rows, Cols):
                 wantedProps.append(dict(
                     size   = want.size,
                     height = want.height,
-                    boxSize= want.boxSize
+                    boxSize= want.boxSize,
+                    text = want.text,
+                    rowCol = want.rowCol
                 ))
 
             #apply
@@ -225,10 +230,13 @@ def sortRect(units, Rows, Cols):
                 Have[i].change(
                     size=want['size'],
                     height=want['height'],
-                    boxSize=want['boxSize'])
+                    text = want['text'],
+                    rowCol=want['rowCol']
+                    )
+                Have[i].change(boxSize=want['boxSize']) #TODO: boxSize doesn't play well with others
 
 
 if __name__=='__main__':
-    units = makeUnits(Rows,Cols)
+    units = makeUnits(Rows,Cols, showLabels)
     initLandscape(units, Rows, Cols)
     sortRect(units, Rows, Cols)
